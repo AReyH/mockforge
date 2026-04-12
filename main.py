@@ -87,7 +87,7 @@ class GenerateRequest(BaseModel):
 
 _ai = {} # This is the autoincrement state per session, it restse each request
 
-def gerenate_value(col: ColumnSpec, row_index: int) -> Any:
+def generate_value(col: ColumnSpec, row_index: int) -> Any:
     cat = col.category
     sub = col.subtype
 
@@ -161,4 +161,21 @@ async def index(request:Request):
         'data_types':DATA_TYPES
     })
 
+@app.get('/api/data-types'):
+async def get_data_types():
+    return DATA_TYPES
 
+@app.post('/api/generate')
+async def generate(req: GenerateRequest):
+    # This handles crazy requests like less than 1 or more than 10000 rows.
+    if req.rows < 1 or req.rows > 10000:
+        return JSONResponse({"error":"rows must be between 1 and 10000"},400)
+    if len(req.columns) < 1 or len(req.columns) > 10:
+        return JSONResponse({"error": "1-10 columns allowed"},400)
+    
+    records = []
+    for i in range(req.rows):
+        row = {}
+        for col in req.columns:
+            row[col.name or f'col_{i}'] = generate_value(col,i)
+        records.append(row)
