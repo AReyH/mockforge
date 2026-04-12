@@ -10,7 +10,7 @@ import csv
 import io
 from typing import Optional, List, Any
 
-app.FastAPI(title='MockForge')
+app = app.FastAPI(title='MockForge')
 app.mount('/static',StaticFiles(directory='static'),name='static')
 templates = Jinja2Templates(directory='templates')
 fake = Faker()
@@ -154,4 +154,11 @@ def gerenate_value(col: ColumnSpec, row_index: int) -> Any:
 
 
 
-        
+@app.get('/',response_class=HTMLResponse)
+async def index(request:Request):
+    return templates.TemplateResponse('index.html', {
+        'request':request,
+        'data_types':DATA_TYPES
+    })
+
+
