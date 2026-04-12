@@ -85,3 +85,73 @@ class GenerateRequest(BaseModel):
     format: str = 'json'
 
 
+_ai = {} # This is the autoincrement state per session, it restse each request
+
+def gerenate_value(col: ColumnSpec, row_index: int) -> Any:
+    cat = col.category
+    sub = col.subtype
+
+    if cat == 'string':
+        fn_map = {
+            'full_name': fake.name,
+            'first_name': fake.first_name,
+            'last_name': fake.last_name,
+            'email': fake.email,
+            'phone': fake.phone_number,
+            'username': fake.user_name,
+            'company': fake.company,
+            'job': fake.job,
+            'city': fake.city,
+            'country': fake.country,
+            'address': fake.address,
+            'url': fake.url,
+            'ipv4': fake.ipv4,
+            'uuid4': fake.uuid4,
+            'color_name': fake.color_name,
+            'hex_color': fake.hex_color
+        }
+        if sub == 'custom':
+            vals = col.custom_values or ['A','B','C']
+            return random.choice(vals)
+        return fn_map.get(sub,fake.word)()
+    
+    elif cat == 'number':
+        if sub == 'uniform':
+            # Generates a number from a uniform distribution where col.min_val and col.max_val are the min and max params
+            v = random.uniform(col.min_val, col.max_val) 
+            # Returns the rounded version, with col.decimals
+            return round(v,col.decimals)
+        elif sub == 'normal':
+            v = random.gauss(col.mean,col.std)
+            return round(v,col.decimals)
+        elif sub == 'integer':
+            v = random.randint(int(col.min_val), int(col.max_val))
+            return v
+        elif sub == 'boolean':
+            v = random.randint(0,1)
+            return v
+    elif cat == 'date':
+        if sub == 'date':
+            return fake.date()
+        elif sub == 'datetime':
+            return fake.datetime().isoformat()
+        elif sub == 'year':
+            return fake.year()
+        elif sub == 'month':
+            return fake.month()
+        elif sub == 'time':
+            return fake.time()
+    
+    elif cat == 'id':
+        if sub == 'automincrements':
+            return row_index + 1
+        elif sub == 'uuid4':
+                return fake.uuid4()
+        elif sub == 'ean13':
+            return fake.ean13()
+    
+    return None
+
+
+
+        
