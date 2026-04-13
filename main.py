@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from oydantic import BaseModel
+from pydantic import BaseModel
 from faker import Faker
 import random
 import json
@@ -10,7 +10,7 @@ import csv
 import io
 from typing import Optional, List, Any
 
-app = app.FastAPI(title='MockForge')
+app = FastAPI(title='MockForge')
 app.mount('/static',StaticFiles(directory='static'),name='static')
 templates = Jinja2Templates(directory='templates')
 fake = Faker()
