@@ -1,6 +1,6 @@
 # MockForge
 
-A web app for generating custom mock datasets. Define your schema, pick your data types, and download realistic fake data in JSON or CSV — no sign-up, no fuss.
+A web app for generating custom mock datasets. Define your schema, pick your data types, and download realistic fake data in JSON or CSV.
 
 ## Features
 
