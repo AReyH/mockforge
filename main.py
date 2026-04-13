@@ -143,7 +143,7 @@ def generate_value(col: ColumnSpec, row_index: int) -> Any:
             return fake.time()
     
     elif cat == 'id':
-        if sub == 'automincrements':
+        if sub == 'autoincrements':
             return row_index + 1
         elif sub == 'uuid4':
                 return fake.uuid4()
@@ -184,6 +184,7 @@ async def generate(req: GenerateRequest):
         buf = io.StringIO()
         writer = csv.DictWriter(buf, fieldnames=[c.name for c in req.columns])
         writer.writeheader()
+        writer.writerows(records)
         buf.seek(0)
         return StreamingResponse(
             iter([buf.getvalue()]),
