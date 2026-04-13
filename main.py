@@ -161,7 +161,7 @@ async def index(request:Request):
         'data_types':DATA_TYPES
     })
 
-@app.get('/api/data-types'):
+@app.get('/api/data-types')
 async def get_data_types():
     return DATA_TYPES
 
@@ -179,3 +179,16 @@ async def generate(req: GenerateRequest):
         for col in req.columns:
             row[col.name or f'col_{i}'] = generate_value(col,i)
         records.append(row)
+    
+    if req.format == 'csv':
+        buf = io.StringIO()
+        writer = csv.DictWriter(buf, fieldnames=[c.name for c in req.columns])
+        writer.writeheader()
+        buf.seek(0)
+        return StreamingResponse(
+            iter([buf.getvalue()]),
+            media_type='text/csv',
+            headers={'Content-Disposition': 'attachment; filename=mock_data.csv'}
+        )
+    
+    return {'rows':req.rows, 'columns':len(req.columns), 'data':records}
