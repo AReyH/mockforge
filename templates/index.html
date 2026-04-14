@@ -454,6 +454,39 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   .loading .spinner { display: block; }
 
+  /* ── Mobile ────────────────────────────────────────────── */
+  @media (max-width: 768px) {
+    header {
+      padding: 14px 16px;
+    }
+    .header-meta { display: none; }
+
+    .workspace {
+      grid-template-columns: 1fr;
+      max-height: none;
+      overflow: visible;
+    }
+
+    .config-panel {
+      overflow-y: visible;
+      max-height: none;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .preview-panel {
+      min-height: 70vh;
+    }
+
+    .preview-body {
+      padding: 16px;
+    }
+
+    .param-row.three {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
   /* Error toast */
   .toast {
     position: fixed;
@@ -758,6 +791,9 @@ async function generate(fmt) {
     if (data.error) { showToast(data.error); setLoading(false); return; }
     currentData = data;
     renderPreview(data);
+    if (window.innerWidth <= 768) {
+      document.querySelector('.preview-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   } catch(e) {
     showToast('Generation failed. Check console.');
     console.error(e);
