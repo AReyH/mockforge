@@ -76,7 +76,7 @@ class ColumnSpec(BaseModel):
     max_val: Optional[float] = 100
     mean: Optional[float] = 50
     std: Optional[float] = 10
-    decimals: Optional[float] = 2
+    decimals: Optional[int] = 2
     custom_values: Optional[List[str]] = []
 
 class GenerateRequest(BaseModel):
