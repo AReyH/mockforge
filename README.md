@@ -2,6 +2,8 @@
 
 A web app for generating custom mock datasets. Define your schema, pick your data types, and download realistic fake data in JSON or CSV.
 
+This project has been deployed using [Render](https://render.com/). Please check it out here: [MockForge](https://mockforge-pmue.onrender.com/).
+
 ## Features
 
 - **4 data categories** — String/Text, Number, Date/Time, and Identifiers
