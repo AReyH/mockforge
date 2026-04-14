@@ -2,6 +2,17 @@
 
 A web app for generating custom mock datasets. Define your schema, pick your data types, and download realistic fake data in JSON or CSV.
 
+This project has been deployed using [Render](https://render.com/). Please check it out here: [MockForge](https://mockforge-pmue.onrender.com/).
+
+![MockForge screenshot](img/mockforge.png)
+
+## How It Works
+
+1. **Set the row count** — choose how many rows to generate (up to 10,000).
+2. **Add columns** — click "Add Column", give it a name, then pick a category and subtype (e.g. *String → Email*, *Number → Integer range*, *ID → UUID*).
+3. **Configure parameters** — some subtypes expose extra inputs (min/max, mean/std dev, custom value lists).
+4. **Generate** — hit "Generate Data" to preview the result in a live table or JSON view, or click "Export as CSV" to download the full dataset.
+
 ## Features
 
 - **4 data categories** — String/Text, Number, Date/Time, and Identifiers
