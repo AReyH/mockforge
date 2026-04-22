@@ -17,7 +17,8 @@ This project has been deployed using [Render](https://render.com/). Please check
 
 - **4 data categories** — String/Text, Number, Date/Time, and Identifiers
 - **25+ subtypes** — names, emails, addresses, UUIDs, barcodes, dates, numeric distributions, and more
-- **Custom categories** — supply your own list of values for random selection
+- **Custom categories** — supply your own list of values with optional per-value weights for realistic skew (e.g. `Active 70%, Inactive 20%, Pending 10%`)
+- **Column relationships** — make a column's output depend on another column's value (e.g. score range shifts based on status)
 - **Numeric distributions** — uniform, normal (Gaussian), integer range, or boolean
 - **Export formats** — JSON (inline preview) or CSV download
 - **Up to 10,000 rows** and **10 columns** per request
@@ -105,6 +106,9 @@ Generate a mock dataset.
 | `std` | float | Standard deviation (normal distribution) |
 | `decimals` | int | Decimal places for float output |
 | `custom_values` | array | Values to sample from (custom subtype) |
+| `custom_weights` | array | Parallel weights for `custom_values` (e.g. `[0.7, 0.2, 0.1]`). Omit for uniform. |
+| `depends_on` | string | Name of another column whose value gates conditions |
+| `conditions` | object | Map of source value → param overrides (e.g. `{"Active": {"min_val": 80, "max_val": 100}}`) |
 
 ## License
 

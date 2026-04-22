@@ -442,6 +442,55 @@
   .json-num { color: #c0622b; }
   .json-bool { color: #3a7bbd; }
 
+  /* ── Weighted tag input ─────────────────────────────────── */
+  .tag-weight {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    width: 36px;
+    padding: 0 2px;
+    outline: none;
+    text-align: center;
+    margin: 0 4px;
+  }
+
+  /* ── Conditions ─────────────────────────────────────────── */
+  .conditions-divider { height: 1px; background: var(--border); margin: 8px 0; }
+  .conditions-section { display: flex; flex-direction: column; gap: 6px; }
+  .conditions-header { display: flex; align-items: center; gap: 8px; }
+  .conditions-header .param-label { flex-shrink: 0; margin-bottom: 0; }
+  .conditions-header select { flex: 1; }
+  .condition-row {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .condition-when { display: flex; align-items: center; gap: 6px; }
+  .condition-when > span { font-size: 0.72rem; color: var(--muted); font-family: var(--mono); flex-shrink: 0; }
+  .condition-when input { flex: 1; }
+  .cond-params { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .cond-params.single { grid-template-columns: 1fr; }
+  .btn-add-cond {
+    background: transparent;
+    border: 1px dashed var(--border);
+    color: var(--muted);
+    font-size: 0.75rem;
+    padding: 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: var(--mono);
+    width: 100%;
+    transition: all .2s;
+  }
+  .btn-add-cond:hover { border-color: var(--accent2); color: var(--accent2); }
+
   /* Loading */
   .spinner {
     width: 18px; height: 18px;
@@ -633,6 +682,9 @@ function buildCard(col, idx) {
       <div id="params-${col.id}">
         ${buildParams(col)}
       </div>
+      <div id="conditions-${col.id}">
+        ${buildConditionsSection(col)}
+      </div>
     </div>`;
   return card;
 }
@@ -671,15 +723,17 @@ function buildParams(col) {
   }
   if (cat === 'string' && sub === 'custom') {
     const tags = col.params.custom_values || [];
-    const tagHTML = tags.map(t =>
-      `<span class="tag">${t}<span class="tag-x" onclick="removeTag(${col.id},'${t}')">✕</span></span>`
-    ).join('');
+    const weights = col.params.custom_weights || {};
+    const tagHTML = tags.map(t => {
+      const w = weights[t] ?? 1.0;
+      return `<span class="tag">${t}<input class="tag-weight" type="number" value="${w}" min="0" step="0.05" title="weight" oninput="updateTagWeight(${col.id},'${t}',+this.value)"/><span class="tag-x" onclick="removeTag(${col.id},'${t}')">✕</span></span>`;
+    }).join('');
     return `<div class="custom-tags" id="tags-${col.id}" onclick="focusTagInput(${col.id})">
       ${tagHTML}
       <input class="tag-input" id="taginput-${col.id}" placeholder="Type &amp; press Enter…"
              onkeydown="handleTagKey(event,${col.id})"/>
     </div>
-    <div class="tag-hint">Press Enter or comma to add a value</div>`;
+    <div class="tag-hint">Enter/comma to add · adjust weight (default 1)</div>`;
   }
   return '';
 }
@@ -699,6 +753,7 @@ function updateCategory(id, cat) {
   // re-render subtype select and params
   document.getElementById(`sub-${id}`).innerHTML = buildSubtypeOptions(cat, col.subtype);
   document.getElementById(`params-${id}`).innerHTML = buildParams(col);
+  document.getElementById(`conditions-${id}`).innerHTML = buildConditionsSection(col);
 }
 
 function updateSubtype(id, sub) {
@@ -707,6 +762,7 @@ function updateSubtype(id, sub) {
   col.subtype = sub;
   col.params = {};
   document.getElementById(`params-${id}`).innerHTML = buildParams(col);
+  document.getElementById(`conditions-${id}`).innerHTML = buildConditionsSection(col);
 }
 
 function updateParam(id, key, val) {
@@ -725,8 +781,10 @@ function handleTagKey(e, id) {
     if (!val) return;
     const col = columns.find(c => c.id === id);
     if (!col.params.custom_values) col.params.custom_values = [];
+    if (!col.params.custom_weights) col.params.custom_weights = {};
     if (!col.params.custom_values.includes(val)) {
       col.params.custom_values.push(val);
+      col.params.custom_weights[val] = 1.0;
       document.getElementById(`params-${id}`).innerHTML = buildParams(col);
     }
     input.value = '';
@@ -737,7 +795,120 @@ function removeTag(id, tag) {
   const col = columns.find(c => c.id === id);
   if (!col?.params?.custom_values) return;
   col.params.custom_values = col.params.custom_values.filter(t => t !== tag);
+  if (col.params.custom_weights) delete col.params.custom_weights[tag];
   document.getElementById(`params-${id}`).innerHTML = buildParams(col);
+}
+
+// ── Tag weight ────────────────────────────────────────────────────────────
+function updateTagWeight(id, tag, weight) {
+  const col = columns.find(c => c.id === id);
+  if (!col) return;
+  if (!col.params.custom_weights) col.params.custom_weights = {};
+  col.params.custom_weights[tag] = weight;
+}
+
+// ── Conditions ────────────────────────────────────────────────────────────
+function buildConditionsSection(col) {
+  const otherCols = columns.filter(c => c.id !== col.id);
+  if (otherCols.length === 0) return '';
+  const depOn = col.params.depends_on || '';
+  const depOptions = otherCols.map(c => {
+    const name = c.name || `col_${columns.indexOf(c)+1}`;
+    return `<option value="${name}" ${depOn === name ? 'selected' : ''}>${name}</option>`;
+  }).join('');
+  const condRows = depOn
+    ? (col.params.conditions || []).map((cond, i) => buildConditionRow(col, cond, i)).join('')
+    : '';
+  const addBtn = depOn
+    ? `<button class="btn-add-cond" onclick="addCondition(${col.id})">+ Add Condition</button>`
+    : '';
+  return `<div class="conditions-divider"></div>
+    <div class="conditions-section">
+      <div class="conditions-header">
+        <span class="param-label">DEPENDS ON</span>
+        <select onchange="updateDependsOn(${col.id},this.value)">
+          <option value="">— none —</option>
+          ${depOptions}
+        </select>
+      </div>
+      ${condRows}
+      ${addBtn}
+    </div>`;
+}
+
+function buildConditionRow(col, cond, idx) {
+  const id = col.id;
+  let paramsHtml = '';
+  if (col.category === 'number') {
+    if (col.subtype === 'uniform' || col.subtype === 'integer') {
+      paramsHtml = `<div class="cond-params">
+        <div class="param-group"><div class="param-label">MIN</div>
+          <input type="number" class="param" value="${cond.min_val ?? ''}" placeholder="${col.params.min_val ?? 0}"
+                 oninput="updateCondParam(${id},${idx},'min_val',+this.value)"/></div>
+        <div class="param-group"><div class="param-label">MAX</div>
+          <input type="number" class="param" value="${cond.max_val ?? ''}" placeholder="${col.params.max_val ?? 100}"
+                 oninput="updateCondParam(${id},${idx},'max_val',+this.value)"/></div>
+      </div>`;
+    } else if (col.subtype === 'normal') {
+      paramsHtml = `<div class="cond-params">
+        <div class="param-group"><div class="param-label">MEAN</div>
+          <input type="number" class="param" value="${cond.mean ?? ''}" placeholder="${col.params.mean ?? 50}"
+                 oninput="updateCondParam(${id},${idx},'mean',+this.value)"/></div>
+        <div class="param-group"><div class="param-label">STD</div>
+          <input type="number" class="param" value="${cond.std ?? ''}" placeholder="${col.params.std ?? 10}"
+                 oninput="updateCondParam(${id},${idx},'std',+this.value)"/></div>
+      </div>`;
+    }
+  } else if (col.category === 'string' && col.subtype === 'custom') {
+    const vals = (cond.custom_values || []).join(', ');
+    paramsHtml = `<div class="cond-params single">
+      <div class="param-group"><div class="param-label">VALUES</div>
+        <input type="text" class="param" value="${vals}" placeholder="A, B, C"
+               onchange="updateCondParam(${id},${idx},'custom_values',this.value.split(',').map(v=>v.trim()).filter(Boolean))"/></div>
+    </div>`;
+  }
+  return `<div class="condition-row">
+    <div class="condition-when">
+      <span>when =</span>
+      <input type="text" class="param" value="${cond.when || ''}" placeholder="value"
+             oninput="updateCondWhen(${id},${idx},this.value)"/>
+      <button class="btn-remove" onclick="removeCondition(${id},${idx})">✕</button>
+    </div>
+    ${paramsHtml}
+  </div>`;
+}
+
+function updateDependsOn(id, val) {
+  const col = columns.find(c => c.id === id);
+  if (!col) return;
+  col.params.depends_on = val;
+  col.params.conditions = [];
+  document.getElementById(`conditions-${id}`).innerHTML = buildConditionsSection(col);
+}
+
+function addCondition(id) {
+  const col = columns.find(c => c.id === id);
+  if (!col) return;
+  if (!col.params.conditions) col.params.conditions = [];
+  col.params.conditions.push({ when: '' });
+  document.getElementById(`conditions-${id}`).innerHTML = buildConditionsSection(col);
+}
+
+function removeCondition(id, idx) {
+  const col = columns.find(c => c.id === id);
+  if (!col) return;
+  col.params.conditions.splice(idx, 1);
+  document.getElementById(`conditions-${id}`).innerHTML = buildConditionsSection(col);
+}
+
+function updateCondWhen(id, idx, val) {
+  const col = columns.find(c => c.id === id);
+  if (col?.params?.conditions?.[idx] !== undefined) col.params.conditions[idx].when = val;
+}
+
+function updateCondParam(id, idx, key, val) {
+  const col = columns.find(c => c.id === id);
+  if (col?.params?.conditions?.[idx] !== undefined) col.params.conditions[idx][key] = val;
 }
 
 // ── Generate ──────────────────────────────────────────────────────────────
@@ -761,6 +932,9 @@ async function generate(fmt) {
       std: col.params.std ?? 10,
       decimals: col.params.decimals ?? 2,
       custom_values: col.params.custom_values ?? [],
+      custom_weights: (col.params.custom_values || []).map(v => (col.params.custom_weights || {})[v] ?? 1.0),
+      depends_on: col.params.depends_on || null,
+      conditions: Object.fromEntries((col.params.conditions || []).filter(c => c.when).map(({when, ...p}) => [when, p])),
     }))
   };
 

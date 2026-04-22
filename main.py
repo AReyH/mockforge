@@ -78,6 +78,9 @@ class ColumnSpec(BaseModel):
     std: Optional[float] = 10
     decimals: Optional[int] = 2
     custom_values: Optional[List[str]] = []
+    custom_weights: Optional[List[float]] = []
+    depends_on: Optional[str] = None
+    conditions: Optional[dict] = {}
 
 class GenerateRequest(BaseModel):
     rows: int
@@ -87,7 +90,11 @@ class GenerateRequest(BaseModel):
 
 _ai = {} # This is the autoincrement state per session, it restse each request
 
-def generate_value(col: ColumnSpec, row_index: int) -> Any:
+def generate_value(col: ColumnSpec, row_index: int, row: dict = {}) -> Any:
+    if col.depends_on and col.conditions and col.depends_on in row:
+        source_val = str(row[col.depends_on])
+        if source_val in col.conditions:
+            col = ColumnSpec(**{**col.model_dump(), **col.conditions[source_val]})
     cat = col.category
     sub = col.subtype
 
@@ -112,6 +119,9 @@ def generate_value(col: ColumnSpec, row_index: int) -> Any:
         }
         if sub == 'custom':
             vals = col.custom_values or ['A','B','C']
+            weights = col.custom_weights
+            if weights and len(weights) == len(vals):
+                return random.choices(vals, weights=weights, k=1)[0]
             return random.choice(vals)
         return fn_map.get(sub,fake.word)()
     
@@ -177,7 +187,7 @@ async def generate(req: GenerateRequest):
     for i in range(req.rows):
         row = {}
         for col in req.columns:
-            row[col.name or f'col_{i}'] = generate_value(col,i)
+            row[col.name or f'col_{i}'] = generate_value(col, i, row)
         records.append(row)
     
     if req.format == 'csv':
